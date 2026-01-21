@@ -6,7 +6,7 @@
 	"author": "Jack Weilage",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/jack-weilage/antithrow"
+		"url": "git+https://github.com/jack-weilage/antithrow.git"
 	},
 	"keywords": [
 		"result",
