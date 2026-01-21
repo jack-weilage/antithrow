@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { Result } from "./result.js";
-import { err, ok } from "./result.js";
+import { err, ok, Result } from "./result.js";
 
 describe("Result", () => {
 	describe("ok", () => {
@@ -159,6 +158,51 @@ describe("Result", () => {
 				err: (e) => `error: ${e}`,
 			});
 			expect(value).toBe("error: oops");
+		});
+	});
+
+	describe("Result.try", () => {
+		test("returns Ok when function succeeds", () => {
+			const result = Result.try(() => 42);
+			expect(result.isOk()).toBe(true);
+			expect(result.unwrap()).toBe(42);
+		});
+
+		test("returns Err when function throws", () => {
+			const error = new Error("test error");
+			const result = Result.try(() => {
+				throw error;
+			});
+			expect(result.isErr()).toBe(true);
+			expect(result.unwrapErr()).toBe(error);
+		});
+
+		test("catches non-Error thrown values", () => {
+			const result = Result.try(() => {
+				throw "string error";
+			});
+			expect(result.isErr()).toBe(true);
+			expect(result.unwrapErr()).toBe("string error");
+		});
+
+		test("works with JSON.parse success", () => {
+			const result = Result.try(() => JSON.parse('{"a": 1}'));
+			expect(result.isOk()).toBe(true);
+			expect(result.unwrap()).toEqual({ a: 1 });
+		});
+
+		test("works with JSON.parse failure", () => {
+			const result = Result.try(() => JSON.parse("invalid json"));
+			expect(result.isErr()).toBe(true);
+			expect(result.unwrapErr()).toBeInstanceOf(SyntaxError);
+		});
+
+		test("preserves return type", () => {
+			const result = Result.try(() => ({ name: "test", value: 123 }));
+			expect(result.isOk()).toBe(true);
+			const value = result.unwrap();
+			expect(value.name).toBe("test");
+			expect(value.value).toBe(123);
 		});
 	});
 });

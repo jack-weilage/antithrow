@@ -135,3 +135,13 @@ export function ok<T, E = never>(value: T): Ok<T, E> {
 export function err<T = never, E = unknown>(error: E): Err<T, E> {
 	return new Err(error);
 }
+
+export const Result = {
+	try<T, E = unknown>(fn: () => T): Result<T, E> {
+		try {
+			return ok(fn());
+		} catch (error) {
+			return err(error as E);
+		}
+	},
+};
