@@ -132,6 +132,6 @@ export function ok<T, E = never>(value: T): Ok<T, E> {
 	return new Ok(value);
 }
 
-export function err<E, T = never>(error: E): Err<T, E> {
+export function err<T = never, E = unknown>(error: E): Err<T, E> {
 	return new Err(error);
 }
