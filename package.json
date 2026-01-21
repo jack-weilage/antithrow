@@ -2,11 +2,25 @@
 	"name": "antithrow",
 	"version": "0.0.1",
 	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js"
+		}
+	},
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"files": [
+		"dist"
+	],
 	"scripts": {
+		"build": "tsc -p tsconfig.build.json",
+		"clean": "rm -rf dist",
 		"lint": "biome check . && bun lint:publint && bun lint:types",
 		"lint:publint": "publint",
 		"lint:types": "tsc --noEmit",
-		"format": "biome format --write ."
+		"format": "biome format --write .",
+		"prepublishOnly": "bun run clean && bun run build"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.11",
