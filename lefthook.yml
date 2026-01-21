@@ -11,7 +11,7 @@ pre-commit:
   parallel: true
   jobs:
     - run: bunx biome check {staged_files}
-      glob: "*.{js,ts,json,md}"
+      glob: "*.{js,ts,json}"
     
     - run: bun test
       glob: "*.{js,ts,json}"
