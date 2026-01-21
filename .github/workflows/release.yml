@@ -12,7 +12,7 @@ jobs:
     # Don't run on forks
     if: github.repository == 'jack-weilage/antithrow'
     permissions:
-      contents: read
+      contents: write # To create releases
       id-token: write # OIDC trusted publishing
       pull-requests: write # Create changeset pull request
 
