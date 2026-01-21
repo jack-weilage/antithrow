@@ -171,6 +171,68 @@ describe("ResultAsync", () => {
 		});
 	});
 
+	describe("inspect", () => {
+		test("calls fn with value for Ok", async () => {
+			let inspected: number | undefined;
+			const result = okAsync(42).inspect((x) => {
+				inspected = x;
+			});
+			expect(await result.unwrap()).toBe(42);
+			expect(inspected).toBe(42);
+		});
+
+		test("does not call fn for Err", async () => {
+			let called = false;
+			const result = errAsync<number, string>("error").inspect(() => {
+				called = true;
+			});
+			await result;
+			expect(called).toBe(false);
+		});
+
+		test("can be chained", async () => {
+			const values: number[] = [];
+			const result = okAsync(1)
+				.map((x) => x + 1)
+				.inspect((x) => values.push(x))
+				.map((x) => x * 2)
+				.inspect((x) => values.push(x));
+			expect(await result.unwrap()).toBe(4);
+			expect(values).toEqual([2, 4]);
+		});
+	});
+
+	describe("inspectErr", () => {
+		test("does not call fn for Ok", async () => {
+			let called = false;
+			const result = okAsync(42).inspectErr(() => {
+				called = true;
+			});
+			await result;
+			expect(called).toBe(false);
+		});
+
+		test("calls fn with error for Err", async () => {
+			let inspected: string | undefined;
+			const result = errAsync("oops").inspectErr((e) => {
+				inspected = e;
+			});
+			expect(await result.unwrapErr()).toBe("oops");
+			expect(inspected).toBe("oops");
+		});
+
+		test("can be chained", async () => {
+			const errors: string[] = [];
+			const result = errAsync<number, string>("error")
+				.mapErr((e) => e.toUpperCase())
+				.inspectErr((e) => errors.push(e))
+				.mapErr((e) => `wrapped: ${e}`)
+				.inspectErr((e) => errors.push(e));
+			await result;
+			expect(errors).toEqual(["ERROR", "wrapped: ERROR"]);
+		});
+	});
+
 	describe("PromiseLike", () => {
 		test("can be awaited directly", async () => {
 			const result = await okAsync(42);

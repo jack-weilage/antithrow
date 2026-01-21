@@ -161,6 +161,91 @@ describe("Result", () => {
 		});
 	});
 
+	describe("inspect", () => {
+		test("calls fn with value for Ok", () => {
+			let inspected: number | undefined;
+			const result = ok(42).inspect((x) => {
+				inspected = x;
+			});
+			expect(inspected).toBe(42);
+			expect(result.unwrap()).toBe(42);
+		});
+
+		test("does not call fn for Err", () => {
+			let called = false;
+			const result: Result<number, string> = err("error");
+			result.inspect(() => {
+				called = true;
+			});
+			expect(called).toBe(false);
+		});
+
+		test("returns the original result for Ok", () => {
+			const original = ok(42);
+			const result = original.inspect(() => {});
+			expect(result).toBe(original);
+		});
+
+		test("returns the original result for Err", () => {
+			const original: Result<number, string> = err("error");
+			const result = original.inspect(() => {});
+			expect(result).toBe(original);
+		});
+
+		test("can be chained", () => {
+			const values: number[] = [];
+			const result = ok(1)
+				.map((x) => x + 1)
+				.inspect((x) => values.push(x))
+				.map((x) => x * 2)
+				.inspect((x) => values.push(x));
+			expect(result.unwrap()).toBe(4);
+			expect(values).toEqual([2, 4]);
+		});
+	});
+
+	describe("inspectErr", () => {
+		test("does not call fn for Ok", () => {
+			let called = false;
+			ok(42).inspectErr(() => {
+				called = true;
+			});
+			expect(called).toBe(false);
+		});
+
+		test("calls fn with error for Err", () => {
+			let inspected: string | undefined;
+			const result = err("oops").inspectErr((e) => {
+				inspected = e;
+			});
+			expect(inspected).toBe("oops");
+			expect(result.unwrapErr()).toBe("oops");
+		});
+
+		test("returns the original result for Ok", () => {
+			const original = ok<number, string>(42);
+			const result = original.inspectErr(() => {});
+			expect(result).toBe(original);
+		});
+
+		test("returns the original result for Err", () => {
+			const original = err("error");
+			const result = original.inspectErr(() => {});
+			expect(result).toBe(original);
+		});
+
+		test("can be chained", () => {
+			const errors: string[] = [];
+			const result: Result<number, string> = err("error");
+			result
+				.mapErr((e) => e.toUpperCase())
+				.inspectErr((e) => errors.push(e))
+				.mapErr((e) => `wrapped: ${e}`)
+				.inspectErr((e) => errors.push(e));
+			expect(errors).toEqual(["ERROR", "wrapped: ERROR"]);
+		});
+	});
+
 	describe("Result.try", () => {
 		test("returns Ok when function succeeds", () => {
 			const result = Result.try(() => 42);

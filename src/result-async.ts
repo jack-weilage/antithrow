@@ -162,6 +162,35 @@ interface ResultAsyncMethods<T, E> {
 	 * @returns A promise that resolves to the result of the handler call.
 	 */
 	match<U>(handlers: { ok: (value: T) => U; err: (error: E) => U }): Promise<U>;
+
+	/**
+	 * Calls the provided function with the `Ok` value for side effects, returning the original result.
+	 *
+	 * @example
+	 * ```ts
+	 * okAsync(42).inspect((x) => console.log(x)); // logs 42, returns okAsync(42)
+	 * errAsync("oops").inspect((x) => console.log(x)); // does nothing, returns errAsync("oops")
+	 * ```
+	 *
+	 * @param fn - The function to call with the `Ok` value.
+	 *
+	 * @returns The original result, unchanged.
+	 */
+	inspect(fn: (value: T) => void): ResultAsync<T, E>;
+	/**
+	 * Calls the provided function with the `Err` value for side effects, returning the original result.
+	 *
+	 * @example
+	 * ```ts
+	 * okAsync(42).inspectErr((e) => console.error(e)); // does nothing, returns okAsync(42)
+	 * errAsync("oops").inspectErr((e) => console.error(e)); // logs "oops", returns errAsync("oops")
+	 * ```
+	 *
+	 * @param fn - The function to call with the `Err` value.
+	 *
+	 * @returns The original result, unchanged.
+	 */
+	inspectErr(fn: (error: E) => void): ResultAsync<T, E>;
 }
 
 export class ResultAsync<T, E>
@@ -273,6 +302,16 @@ export class ResultAsync<T, E>
 		err: (error: E) => U;
 	}): Promise<U> {
 		return (await this.promise).match(handlers);
+	}
+
+	inspect(fn: (value: T) => void): ResultAsync<T, E> {
+		return new ResultAsync(this.promise.then((result) => result.inspect(fn)));
+	}
+
+	inspectErr(fn: (error: E) => void): ResultAsync<T, E> {
+		return new ResultAsync(
+			this.promise.then((result) => result.inspectErr(fn)),
+		);
 	}
 
 	async *[Symbol.asyncIterator](): AsyncGenerator<Err<never, E>, T> {

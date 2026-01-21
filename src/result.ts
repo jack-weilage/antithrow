@@ -155,6 +155,35 @@ interface ResultMethods<T, E> {
 	 * @returns The result of the handler call.
 	 */
 	match<U>(handlers: { ok: (value: T) => U; err: (error: E) => U }): U;
+
+	/**
+	 * Calls the provided function with the `Ok` value for side effects, returning the original result.
+	 *
+	 * @example
+	 * ```ts
+	 * ok(42).inspect((x) => console.log(x)); // logs 42, returns ok(42)
+	 * err("oops").inspect((x) => console.log(x)); // does nothing, returns err("oops")
+	 * ```
+	 *
+	 * @param fn - The function to call with the `Ok` value.
+	 *
+	 * @returns The original result, unchanged.
+	 */
+	inspect(fn: (value: T) => void): Result<T, E>;
+	/**
+	 * Calls the provided function with the `Err` value for side effects, returning the original result.
+	 *
+	 * @example
+	 * ```ts
+	 * ok(42).inspectErr((e) => console.error(e)); // does nothing, returns ok(42)
+	 * err("oops").inspectErr((e) => console.error(e)); // logs "oops", returns err("oops")
+	 * ```
+	 *
+	 * @param fn - The function to call with the `Err` value.
+	 *
+	 * @returns The original result, unchanged.
+	 */
+	inspectErr(fn: (error: E) => void): Result<T, E>;
 }
 
 /**
@@ -230,6 +259,15 @@ export class Ok<T, E> implements ResultMethods<T, E> {
 	match<U>(handlers: { ok: (value: T) => U; err: (error: E) => U }): U {
 		return handlers.ok(this.value);
 	}
+
+	inspect(fn: (value: T) => void): Result<T, E> {
+		fn(this.value);
+		return this;
+	}
+
+	inspectErr(_fn: (error: E) => void): Result<T, E> {
+		return this;
+	}
 }
 
 /**
@@ -304,6 +342,15 @@ export class Err<T, E> implements ResultMethods<T, E> {
 
 	match<U>(handlers: { ok: (value: T) => U; err: (error: E) => U }): U {
 		return handlers.err(this.error);
+	}
+
+	inspect(_fn: (value: T) => void): Result<T, E> {
+		return this;
+	}
+
+	inspectErr(fn: (error: E) => void): Result<T, E> {
+		fn(this.error);
+		return this;
 	}
 }
 
