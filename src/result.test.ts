@@ -1,4 +1,5 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, expectTypeOf, test } from "bun:test";
+import type { Err, Ok } from "./result.js";
 import { err, ok, Result } from "./result.js";
 
 describe("Result", () => {
@@ -352,6 +353,186 @@ describe("Result", () => {
 			const value = result.unwrap();
 			expect(value.name).toBe("test");
 			expect(value.value).toBe(123);
+		});
+	});
+
+	describe("types", () => {
+		test("ok returns Ok<T, E>", () => {
+			const result = ok(42);
+			expectTypeOf(result).toEqualTypeOf<Ok<number, never>>();
+		});
+
+		test("ok with explicit error type", () => {
+			const result = ok<number, string>(42);
+			expectTypeOf(result).toEqualTypeOf<Ok<number, string>>();
+		});
+
+		test("err returns Err<T, E>", () => {
+			const result = err("error");
+			expectTypeOf(result).toEqualTypeOf<Err<never, string>>();
+		});
+
+		test("err with explicit value type", () => {
+			const result = err<number, string>("error");
+			expectTypeOf(result).toEqualTypeOf<Err<number, string>>();
+		});
+
+		test("Result is union of Ok and Err", () => {
+			const result: Result<number, string> = ok(42);
+			expectTypeOf(result).toExtend<Ok<number, string> | Err<number, string>>();
+		});
+
+		test("isOk narrows to Ok", () => {
+			const result: Result<number, string> = ok(42);
+			if (result.isOk()) {
+				expectTypeOf(result).toEqualTypeOf<Ok<number, string>>();
+				expectTypeOf(result.value).toEqualTypeOf<number>();
+			}
+		});
+
+		test("isErr narrows to Err", () => {
+			const result: Result<number, string> = err("error");
+			if (result.isErr()) {
+				expectTypeOf(result).toEqualTypeOf<Err<number, string>>();
+				expectTypeOf(result.error).toEqualTypeOf<string>();
+			}
+		});
+
+		test("unwrap returns T", () => {
+			const result = ok(42);
+			expectTypeOf(result.unwrap()).toEqualTypeOf<number>();
+		});
+
+		test("unwrapErr returns E", () => {
+			const result = err("error");
+			expectTypeOf(result.unwrapErr()).toEqualTypeOf<string>();
+		});
+
+		test("unwrapOr returns T", () => {
+			const result: Result<number, string> = ok(42);
+			expectTypeOf(result.unwrapOr(0)).toEqualTypeOf<number>();
+		});
+
+		test("unwrapOrElse returns T", () => {
+			const result: Result<number, string> = ok(42);
+			expectTypeOf(result.unwrapOrElse(() => 0)).toEqualTypeOf<number>();
+		});
+
+		test("map transforms value type", () => {
+			const result = ok(42);
+			const mapped = result.map((x) => x.toString());
+			expectTypeOf(mapped).toEqualTypeOf<Result<string, never>>();
+		});
+
+		test("map preserves error type", () => {
+			const result: Result<number, string> = ok(42);
+			const mapped = result.map((x) => x * 2);
+			expectTypeOf(mapped).toEqualTypeOf<Result<number, string>>();
+		});
+
+		test("mapErr transforms error type", () => {
+			const result: Result<number, string> = err("error");
+			const mapped = result.mapErr((e) => e.length);
+			expectTypeOf(mapped).toEqualTypeOf<Result<number, number>>();
+		});
+
+		test("mapErr preserves value type", () => {
+			const result = ok<number, string>(42);
+			const mapped = result.mapErr((e) => e.length);
+			expectTypeOf(mapped).toEqualTypeOf<Result<number, number>>();
+		});
+
+		test("mapOr returns U", () => {
+			const result: Result<number, string> = ok(42);
+			const mapped = result.mapOr("default", (x) => x.toString());
+			expectTypeOf(mapped).toEqualTypeOf<string>();
+		});
+
+		test("mapOrElse returns U", () => {
+			const result: Result<number, string> = ok(42);
+			const mapped = result.mapOrElse(
+				(e) => e.toUpperCase(),
+				(x) => x.toString(),
+			);
+			expectTypeOf(mapped).toEqualTypeOf<string>();
+		});
+
+		test("andThen transforms value type and unions error types", () => {
+			const result = ok<number, "e1">(42);
+			const chained = result.andThen((x) => ok<string, "e2">(x.toString()));
+			expectTypeOf(chained).toEqualTypeOf<Result<string, "e1" | "e2">>();
+		});
+
+		test("andThen can return Err", () => {
+			const result = ok(42);
+			const chained = result.andThen(() => err<string, "newErr">("newErr"));
+			expectTypeOf(chained).toEqualTypeOf<Result<string, never | "newErr">>();
+		});
+
+		test("orElse transforms error type", () => {
+			const result: Result<number, string> = err("error");
+			const recovered = result.orElse((e) => err<number, number>(e.length));
+			expectTypeOf(recovered).toEqualTypeOf<Result<number, number>>();
+		});
+
+		test("orElse can return Ok", () => {
+			const result: Result<number, string> = err("error");
+			const recovered = result.orElse(() => ok<number, never>(0));
+			expectTypeOf(recovered).toEqualTypeOf<Result<number, never>>();
+		});
+
+		test("match returns U", () => {
+			const result: Result<number, string> = ok(42);
+			const matched = result.match({
+				ok: (x) => `value: ${x}`,
+				err: (e) => `error: ${e}`,
+			});
+			expectTypeOf(matched).toEqualTypeOf<string>();
+		});
+
+		test("inspect returns same Result type", () => {
+			const result = ok<number, string>(42);
+			const inspected = result.inspect(() => {});
+			expectTypeOf(inspected).toEqualTypeOf<Result<number, string>>();
+		});
+
+		test("inspectErr returns same Result type", () => {
+			const result = err<number, string>("error");
+			const inspected = result.inspectErr(() => {});
+			expectTypeOf(inspected).toEqualTypeOf<Result<number, string>>();
+		});
+
+		test("Result.try returns Result<T, E>", () => {
+			const result = Result.try(() => 42);
+			expectTypeOf(result).toEqualTypeOf<Result<number, unknown>>();
+		});
+
+		test("Result.try with explicit error type", () => {
+			const result = Result.try<number, Error>(() => 42);
+			expectTypeOf(result).toEqualTypeOf<Result<number, Error>>();
+		});
+
+		test("chained operations preserve types", () => {
+			const result = ok<number, "initial">(42)
+				.map((x) => x.toString())
+				.mapErr((e) => `wrapped: ${e}` as const)
+				.andThen((s) => ok<number, "parse">(s.length));
+			expectTypeOf(result).toEqualTypeOf<
+				Result<number, "wrapped: initial" | "parse">
+			>();
+		});
+
+		test("Ok.value is T", () => {
+			const result = ok({ a: 1, b: "hello" });
+			expectTypeOf(result.value).toEqualTypeOf<{ a: number; b: string }>();
+		});
+
+		test("Err.error is E", () => {
+			const result = err({ code: 404, message: "Not found" });
+			expectTypeOf(result.error).toEqualTypeOf<{
+				code: number;
+				message: string;
+			}>();
 		});
 	});
 });

@@ -1,4 +1,5 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, expectTypeOf, test } from "bun:test";
+import type { Result } from "./result.js";
 import { err, ok } from "./result.js";
 import { errAsync, okAsync, ResultAsync } from "./result-async.js";
 
@@ -371,6 +372,203 @@ describe("ResultAsync", () => {
 			}).map((x) => x);
 			expect(await result.isErr()).toBe(true);
 			expect((await result.unwrapErr()) as Error).toBeInstanceOf(Error);
+		});
+	});
+
+	describe("types", () => {
+		test("okAsync returns ResultAsync<T, E>", () => {
+			const result = okAsync(42);
+			expectTypeOf(result).toEqualTypeOf<ResultAsync<number, never>>();
+		});
+
+		test("okAsync with explicit error type", () => {
+			const result = okAsync<number, string>(42);
+			expectTypeOf(result).toEqualTypeOf<ResultAsync<number, string>>();
+		});
+
+		test("errAsync returns ResultAsync<T, E>", () => {
+			const result = errAsync("error");
+			expectTypeOf(result).toEqualTypeOf<ResultAsync<never, string>>();
+		});
+
+		test("errAsync with explicit value type", () => {
+			const result = errAsync<number, string>("error");
+			expectTypeOf(result).toEqualTypeOf<ResultAsync<number, string>>();
+		});
+
+		test("awaited ResultAsync is Result<T, E>", async () => {
+			const resultAsync = okAsync<number, string>(42);
+			const result = await resultAsync;
+			expectTypeOf(result).toEqualTypeOf<Result<number, string>>();
+		});
+
+		test("isOk returns Promise<boolean>", () => {
+			const result = okAsync(42);
+			expectTypeOf(result.isOk()).toEqualTypeOf<Promise<boolean>>();
+		});
+
+		test("isErr returns Promise<boolean>", () => {
+			const result = errAsync("error");
+			expectTypeOf(result.isErr()).toEqualTypeOf<Promise<boolean>>();
+		});
+
+		test("unwrap returns Promise<T>", () => {
+			const result = okAsync(42);
+			expectTypeOf(result.unwrap()).toEqualTypeOf<Promise<number>>();
+		});
+
+		test("unwrapErr returns Promise<E>", () => {
+			const result = errAsync("error");
+			expectTypeOf(result.unwrapErr()).toEqualTypeOf<Promise<string>>();
+		});
+
+		test("unwrapOr returns Promise<T>", () => {
+			const result = okAsync<number, string>(42);
+			expectTypeOf(result.unwrapOr(0)).toEqualTypeOf<Promise<number>>();
+		});
+
+		test("unwrapOrElse returns Promise<T>", () => {
+			const result = okAsync<number, string>(42);
+			expectTypeOf(result.unwrapOrElse(() => 0)).toEqualTypeOf<
+				Promise<number>
+			>();
+		});
+
+		test("map transforms value type", () => {
+			const result = okAsync(42);
+			const mapped = result.map((x) => x.toString());
+			expectTypeOf(mapped).toEqualTypeOf<ResultAsync<string, never>>();
+		});
+
+		test("map preserves error type", () => {
+			const result = okAsync<number, string>(42);
+			const mapped = result.map((x) => x * 2);
+			expectTypeOf(mapped).toEqualTypeOf<ResultAsync<number, string>>();
+		});
+
+		test("mapErr transforms error type", () => {
+			const result = errAsync<number, string>("error");
+			const mapped = result.mapErr((e) => e.length);
+			expectTypeOf(mapped).toEqualTypeOf<ResultAsync<number, number>>();
+		});
+
+		test("mapErr preserves value type", () => {
+			const result = okAsync<number, string>(42);
+			const mapped = result.mapErr((e) => e.length);
+			expectTypeOf(mapped).toEqualTypeOf<ResultAsync<number, number>>();
+		});
+
+		test("mapOr returns Promise<U>", () => {
+			const result = okAsync<number, string>(42);
+			const mapped = result.mapOr("default", (x) => x.toString());
+			expectTypeOf(mapped).toEqualTypeOf<Promise<string>>();
+		});
+
+		test("mapOrElse returns Promise<U>", () => {
+			const result = okAsync<number, string>(42);
+			const mapped = result.mapOrElse(
+				(e) => e.toUpperCase(),
+				(x) => x.toString(),
+			);
+			expectTypeOf(mapped).toEqualTypeOf<Promise<string>>();
+		});
+
+		test("andThen with Result transforms types", () => {
+			const result = okAsync<number, "e1">(42);
+			const chained = result.andThen((x) => ok<string, "e2">(x.toString()));
+			expectTypeOf(chained).toEqualTypeOf<ResultAsync<string, "e1" | "e2">>();
+		});
+
+		test("andThen with ResultAsync transforms types", () => {
+			const result = okAsync<number, "e1">(42);
+			const chained = result.andThen((x) =>
+				okAsync<string, "e2">(x.toString()),
+			);
+			expectTypeOf(chained).toEqualTypeOf<ResultAsync<string, "e1" | "e2">>();
+		});
+
+		test("andThen can return Err", () => {
+			const result = okAsync(42);
+			const chained = result.andThen(() => err<string, "newErr">("newErr"));
+			expectTypeOf(chained).toEqualTypeOf<
+				ResultAsync<string, never | "newErr">
+			>();
+		});
+
+		test("orElse with Result transforms error type", () => {
+			const result = errAsync<number, string>("error");
+			const recovered = result.orElse((e) => err<number, number>(e.length));
+			expectTypeOf(recovered).toEqualTypeOf<ResultAsync<number, number>>();
+		});
+
+		test("orElse with ResultAsync transforms error type", () => {
+			const result = errAsync<number, string>("error");
+			const recovered = result.orElse((e) =>
+				errAsync<number, number>(e.length),
+			);
+			expectTypeOf(recovered).toEqualTypeOf<ResultAsync<number, number>>();
+		});
+
+		test("orElse can return Ok", () => {
+			const result = errAsync<number, string>("error");
+			const recovered = result.orElse(() => ok<number, never>(0));
+			expectTypeOf(recovered).toEqualTypeOf<ResultAsync<number, never>>();
+		});
+
+		test("match returns Promise<U>", () => {
+			const result = okAsync<number, string>(42);
+			const matched = result.match({
+				ok: (x) => `value: ${x}`,
+				err: (e) => `error: ${e}`,
+			});
+			expectTypeOf(matched).toEqualTypeOf<Promise<string>>();
+		});
+
+		test("inspect returns same ResultAsync type", () => {
+			const result = okAsync<number, string>(42);
+			const inspected = result.inspect(() => {});
+			expectTypeOf(inspected).toEqualTypeOf<ResultAsync<number, string>>();
+		});
+
+		test("inspectErr returns same ResultAsync type", () => {
+			const result = errAsync<number, string>("error");
+			const inspected = result.inspectErr(() => {});
+			expectTypeOf(inspected).toEqualTypeOf<ResultAsync<number, string>>();
+		});
+
+		test("ResultAsync.try returns ResultAsync<T, unknown>", () => {
+			const result = ResultAsync.try(async () => 42);
+			expectTypeOf(result).toEqualTypeOf<ResultAsync<number, unknown>>();
+		});
+
+		test("ResultAsync.try with explicit error type", () => {
+			const result = ResultAsync.try<number, Error>(async () => 42);
+			expectTypeOf(result).toEqualTypeOf<ResultAsync<number, Error>>();
+		});
+
+		test("chained operations preserve types", () => {
+			const result = okAsync<number, "initial">(42)
+				.map((x) => x.toString())
+				.mapErr((e) => `wrapped: ${e}` as const)
+				.andThen((s) => okAsync<number, "parse">(s.length));
+			expectTypeOf(result).toEqualTypeOf<
+				ResultAsync<number, "wrapped: initial" | "parse">
+			>();
+		});
+
+		test("ResultAsync is PromiseLike<Result<T, E>>", () => {
+			const result = okAsync<number, string>(42);
+			expectTypeOf(result).toExtend<PromiseLike<Result<number, string>>>();
+		});
+
+		test("can use with Promise.all and get Result array", async () => {
+			const results = await Promise.all([
+				okAsync<number, string>(1),
+				okAsync<number, string>(2),
+			]);
+			expectTypeOf(results).toEqualTypeOf<
+				[Result<number, string>, Result<number, string>]
+			>();
 		});
 	});
 });
