@@ -33,7 +33,7 @@
 		"lint:publint": "publint",
 		"lint:types": "tsc --noEmit",
 		"format": "biome format --write .",
-		"prepublishOnly": "bun run clean && bun run build"
+		"release": "bun run clean && bun run build && changeset publish"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.11",
