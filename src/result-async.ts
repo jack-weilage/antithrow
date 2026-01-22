@@ -222,7 +222,7 @@ interface ResultAsyncMethods<T, E> {
 export class ResultAsync<T, E> implements PromiseLike<Result<T, E>>, ResultAsyncMethods<T, E> {
 	private readonly promise: Promise<Result<T, E>>;
 
-	constructor(promise: Promise<Result<T, E>>) {
+	private constructor(promise: Promise<Result<T, E>>) {
 		this.promise = promise;
 	}
 
@@ -270,6 +270,26 @@ export class ResultAsync<T, E> implements PromiseLike<Result<T, E>>, ResultAsync
 	 */
 	static fromResult<T, E>(result: Result<T, E>): ResultAsync<T, E> {
 		return new ResultAsync(Promise.resolve(result));
+	}
+
+	/**
+	 * Wraps an existing `Promise<Result<T, E>>` into a `ResultAsync`.
+	 *
+	 * @example
+	 * ```ts
+	 * const promise = fetchData().then(data => ok(data)).catch(e => err(e));
+	 * const result = ResultAsync.fromPromise(promise);
+	 * ```
+	 *
+	 * @template T - The type of the success value.
+	 * @template E - The type of the error value.
+	 *
+	 * @param promise - The `Promise<Result<T, E>>` to wrap.
+	 *
+	 * @returns A `ResultAsync` containing the resolved `Result`.
+	 */
+	static fromPromise<T, E>(promise: Promise<Result<T, E>>): ResultAsync<T, E> {
+		return new ResultAsync(promise);
 	}
 
 	// biome-ignore lint/suspicious/noThenProperty: We are implementing `PromiseLike`.

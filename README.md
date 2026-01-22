@@ -172,6 +172,7 @@ const result = await chain(async function* () {
 | `Result.try(fn)` | Wraps a throwing function in a Result |
 | `ResultAsync.try(fn)` | Wraps an async throwing function in a ResultAsync |
 | `ResultAsync.fromResult(result)` | Wraps an existing Result in a ResultAsync |
+| `ResultAsync.fromPromise(promise)` | Wraps a Promise\<Result\> in a ResultAsync |
 | `chain(generator)` | Chains results using generator syntax |
 
 ### Methods
