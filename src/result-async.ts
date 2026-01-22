@@ -301,7 +301,7 @@ export class ResultAsync<T, E> implements PromiseLike<Result<T, E>>, ResultAsync
 
 	andThen<U, F>(fn: (value: T) => Result<U, F> | ResultAsync<U, F>): ResultAsync<U, E | F> {
 		return new ResultAsync(
-			this.promise.then(async (result) => {
+			this.promise.then((result) => {
 				if (result.isErr()) {
 					return err(result.error);
 				}
@@ -313,7 +313,7 @@ export class ResultAsync<T, E> implements PromiseLike<Result<T, E>>, ResultAsync
 
 	orElse<F>(fn: (error: E) => Result<T, F> | ResultAsync<T, F>): ResultAsync<T, F> {
 		return new ResultAsync(
-			this.promise.then(async (result) => {
+			this.promise.then((result) => {
 				if (result.isOk()) {
 					return ok(result.value);
 				}
