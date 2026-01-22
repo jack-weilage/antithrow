@@ -59,7 +59,7 @@ export function chain<T, E>(
 	if (first instanceof Promise) {
 		const asyncIter = iter as AsyncGenerator<Err<never, E>, T, void>;
 
-		return new ResultAsync(
+		return ResultAsync.fromPromise(
 			(async () => {
 				const next = await first;
 				if (!next.done) {

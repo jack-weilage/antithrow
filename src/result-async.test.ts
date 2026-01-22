@@ -301,6 +301,62 @@ describe("ResultAsync", () => {
 		});
 	});
 
+	describe("ResultAsync.fromResult", () => {
+		test("wraps Ok result", async () => {
+			const syncResult = ok(42);
+			const result = ResultAsync.fromResult(syncResult);
+			expect(await result.isOk()).toBe(true);
+			expect(await result.unwrap()).toBe(42);
+		});
+
+		test("wraps Err result", async () => {
+			const syncResult = err("error");
+			const result = ResultAsync.fromResult(syncResult);
+			expect(await result.isErr()).toBe(true);
+			expect(await result.unwrapErr()).toBe("error");
+		});
+
+		test("can be chained with map", async () => {
+			const syncResult = ok(21);
+			const result = ResultAsync.fromResult(syncResult).map((x) => x * 2);
+			expect(await result.unwrap()).toBe(42);
+		});
+
+		test("can be chained with andThen", async () => {
+			const syncResult = ok(21);
+			const result = ResultAsync.fromResult(syncResult).andThen((x) => okAsync(x * 2));
+			expect(await result.unwrap()).toBe(42);
+		});
+	});
+
+	describe("ResultAsync.fromPromise", () => {
+		test("wraps Promise<Ok>", async () => {
+			const promise = Promise.resolve(ok(42));
+			const result = ResultAsync.fromPromise(promise);
+			expect(await result.isOk()).toBe(true);
+			expect(await result.unwrap()).toBe(42);
+		});
+
+		test("wraps Promise<Err>", async () => {
+			const promise = Promise.resolve(err("error"));
+			const result = ResultAsync.fromPromise(promise);
+			expect(await result.isErr()).toBe(true);
+			expect(await result.unwrapErr()).toBe("error");
+		});
+
+		test("can be chained with map", async () => {
+			const promise = Promise.resolve(ok(21));
+			const result = ResultAsync.fromPromise(promise).map((x) => x * 2);
+			expect(await result.unwrap()).toBe(42);
+		});
+
+		test("can be chained with andThen", async () => {
+			const promise = Promise.resolve(ok(21));
+			const result = ResultAsync.fromPromise(promise).andThen((x) => okAsync(x * 2));
+			expect(await result.unwrap()).toBe(42);
+		});
+	});
+
 	describe("ResultAsync.try", () => {
 		test("returns Ok when async function resolves", async () => {
 			const result = ResultAsync.try(async () => 42);
@@ -520,6 +576,18 @@ describe("ResultAsync", () => {
 		test("ResultAsync.try with explicit error type", () => {
 			const result = ResultAsync.try<number, Error>(async () => 42);
 			expectTypeOf(result).toEqualTypeOf<ResultAsync<number, Error>>();
+		});
+
+		test("ResultAsync.fromResult preserves types", () => {
+			const syncResult = ok<number, string>(42);
+			const result = ResultAsync.fromResult(syncResult);
+			expectTypeOf(result).toEqualTypeOf<ResultAsync<number, string>>();
+		});
+
+		test("ResultAsync.fromPromise preserves types", () => {
+			const promise = Promise.resolve(ok<number, string>(42));
+			const result = ResultAsync.fromPromise(promise);
+			expectTypeOf(result).toEqualTypeOf<ResultAsync<number, string>>();
 		});
 
 		test("chained operations preserve types", () => {
