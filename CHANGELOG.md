@@ -1,5 +1,15 @@
 # antithrow
 
+## 1.1.0
+
+### Minor Changes
+
+- [#19](https://github.com/jack-weilage/antithrow/pull/19) [`6f56327`](https://github.com/jack-weilage/antithrow/commit/6f5632726913c7a42f755bd9e8ef371c5f431e62) Thanks [@jack-weilage](https://github.com/jack-weilage)! - feat(async): implement `ResultAsync.fromPromise` and `ResultAsync.fromResult` constructors
+
+### Patch Changes
+
+- [#22](https://github.com/jack-weilage/antithrow/pull/22) [`3846cbc`](https://github.com/jack-weilage/antithrow/commit/3846cbc96a7825045352bca78e1495f60dc6663c) Thanks [@jack-weilage](https://github.com/jack-weilage)! - perf: reduce unnecessary allocations by re-using results
+
 ## 1.0.0
 
 ### Major Changes
