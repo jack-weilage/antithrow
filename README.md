@@ -1,6 +1,6 @@
 # antithrow
 
-A TypeScript library implementing Rust-style `Result<T, E>` types for type-safe error handling without exceptions. Easily separate your business logic and error handling!
+A TypeScript library implementing Rust-style `Result<T, E>` types for type-safe error handling without exceptions.
 
 ## Installation
 
@@ -13,51 +13,29 @@ bun add antithrow
 Consider a typical route handler:
 
 ```ts
-interface User {
-  id: string;
-  email: string;
-  name: string;
-}
-
-function validateEmail(email: string): string | null {
-  if (!email.includes("@")) return null;
-
-  return email.trim();
-}
-
-function checkEmailAvailable(email: string): boolean {
-  const taken = ["alice@example.com", "bob@example.com"];
-  return !taken.includes(email);
-}
-
-function saveUser(email: string, name: string): User {
-  return { id: crypto.randomUUID(), email, name };
-}
-
 async function handler(request: Request): Promise<Response> {
-  // Error handling is interleaved with the business logic
   const body = await request.json();
   if (!body.email || !body.name) {
     return Response.json({ error: "Missing fields" }, { status: 400 });
   }
 
-  const validEmail = validateEmail(body.email);
-  if (!validEmail) {
+  const validatedEmail = validateEmail(body.email);
+  if (!validatedEmail) {
     return Response.json({ error: "Invalid email" }, { status: 400 });
   }
 
-  if (!checkEmailAvailable(validEmail)) {
+  if (!checkEmailAvailable(validatedEmail)) {
     return Response.json({ error: "Email taken" }, { status: 409 });
   }
 
-  const user = saveUser(validEmail, body.name);
+  const user = saveUser(validatedEmail, body.name);
   return Response.json(user, { status: 201 });
 }
 ```
 
 Problems with this approach:
+- **Complex flow**: Error handling is interleaved with business logic.
 - **Repetitive**: Every step needs manual null/boolean checks and error responses
-- **Easy to forget**: Miss a check and `null` propagates silently through your code
 - **Inconsistent errors**: Each handler rolls its own error format and status codes
 
 ## The Solution
@@ -65,50 +43,12 @@ Problems with this approach:
 The same code rewritten with antithrow:
 
 ```ts
-import type { Result, ResultAsync } from "antithrow"
-import { chain, err, ok } from "antithrow";
-
-interface User {
-  id: string;
-  email: string;
-  name: string;
-}
-
 interface RequestError {
   status: number; 
   message: string;
 }
 
-// Return types now explicitly show these can fail
-function parseBody(request: Request): ResultAsync<{ email: string; name: string }, RequestError> {
-  return ResultAsync.try(() => request.json()).andThen((body) => {
-    if (!body.email || !body.name) {
-      return err({ status: 400, message: "Missing fields" });
-    }
-
-    return ok(body);
-  });
-}
-
-function validateEmail(email: string): Result<string, RequestError> {
-  if (!email.includes("@")) return err({ status: 400, message: "Invalid email" });
-
-  return ok(email.trim());
-}
-
-function checkEmailAvailable(email: string): Result<void, RequestError> {
-  const taken = ["alice@example.com", "bob@example.com"];
-  if (taken.includes(email)) return err({ status: 409, message: "Email taken" });
-
-  return ok();
-}
-
-function saveUser(email: string, name: string): Result<User, RequestError> {
-  return ok({ id: crypto.randomUUID(), email, name });
-}
-
 async function handler(request: Request): Promise<Response> {
-  // The happy path is easy to follow—no error handling cluttering the logic
   const result = await chain(async function* () {
     const { email, name } = yield* parseBody(request);
     const validEmail = yield* validateEmail(email);
