@@ -3,7 +3,8 @@
 	"extends": [
 		"config:recommended",
 		"helpers:pinGitHubActionDigests",
-		"customManagers:biomeVersions",
-		"security:minimumReleaseAgeNpm"
-	]
+		"customManagers:biomeVersions"
+	],
+	"minimumReleaseAge": "3 days",
+	"prCreation": "not-pending"
 }
