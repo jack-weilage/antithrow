@@ -10,108 +10,64 @@ bun add antithrow
 
 ## The Problem
 
-Consider a typical user registration flow with exceptions:
+Consider a typical route handler:
 
 ```ts
-interface User {
-  id: string;
-  email: string;
-  name: string;
-}
+async function handler(request: Request): Promise<Response> {
+  const body = await request.json();
+  if (!body.email || !body.name) {
+    return Response.json({ error: "Missing fields" }, { status: 400 });
+  }
 
-function validateEmail(email: string): string {
-  if (!email.includes("@")) throw new Error("Invalid email");
-  return email;
-}
+  const validatedEmail = validateEmail(body.email);
+  if (!validatedEmail) {
+    return Response.json({ error: "Invalid email" }, { status: 400 });
+  }
 
-function checkEmailAvailable(email: string): void {
-  const taken = ["alice@example.com", "bob@example.com"];
-  if (taken.includes(email)) throw new Error("Email taken");
-}
+  if (!checkEmailAvailable(validatedEmail)) {
+    return Response.json({ error: "Email taken" }, { status: 409 });
+  }
 
-function saveUser(email: string, name: string): User {
-  return { id: crypto.randomUUID(), email, name };
-}
-
-// The caller has no idea which exceptions might be thrown
-function createUser(email: string, name: string): User {
-  const validEmail = validateEmail(email);
-  checkEmailAvailable(validEmail);
-  return saveUser(validEmail, name);
-}
-
-// Error handling is optional and easy to forget
-try {
-  const user = createUser("invalid", "Test");
-  console.log("Created:", user);
-} catch (e) {
-  // What errors can we get here? The types don't tell us
-  console.error("Failed:", e);
+  const user = saveUser(validatedEmail, body.name);
+  return Response.json(user, { status: 201 });
 }
 ```
 
 Problems with this approach:
-- **Hidden failures**: Nothing in the type signature indicates `createUser` can fail
-- **Unclear errors**: Callers don't know what exceptions to catch
-- **Easy to forget**: The compiler won't remind you to handle errors
+- **Complex flow**: Error handling is interleaved with business logic.
+- **Repetitive**: Every step needs manual null/boolean checks and error responses
+- **Inconsistent errors**: Each handler rolls its own error format and status codes
 
 ## The Solution
 
 The same code rewritten with antithrow:
 
 ```ts
-import { chain, err, ok, type Result } from "antithrow";
-
-interface User {
-  id: string;
-  email: string;
-  name: string;
+interface RequestError {
+  status: number; 
+  message: string;
 }
 
-// Return types now explicitly show these can fail
-function validateEmail(email: string): Result<string, string> {
-  if (!email.includes("@")) return err("Invalid email");
-  return ok(email);
-}
-
-function checkEmailAvailable(email: string): Result<void, string> {
-  const taken = ["alice@example.com", "bob@example.com"];
-  if (taken.includes(email)) return err("Email taken");
-  return ok();
-}
-
-function saveUser(email: string, name: string): Result<User, string> {
-  return ok({ id: crypto.randomUUID(), email, name });
-}
-
-// The return type makes failure explicit—callers must handle it
-function createUser(email: string, name: string): Result<User, string> {
-  return chain(function* () {
+async function handler(request: Request): Promise<Response> {
+  const result = await chain(async function* () {
+    const { email, name } = yield* parseBody(request);
     const validEmail = yield* validateEmail(email);
     yield* checkEmailAvailable(validEmail);
+
     return yield* saveUser(validEmail, name);
   });
+
+  return result.match({
+    ok: (user) => Response.json(user, { status: 201 }),
+    err: ({ status, message }) => Response.json({ error: message }, { status }),
+  });
 }
-
-// TypeScript ensures you handle both cases
-const result = createUser("alice@example.com", "Test");
-
-if (result.isOk()) {
-  console.log("Created:", result.value);
-} else {
-  console.error("Failed:", result.error);
-}
-
-// Or use pattern matching
-result.match({
-  ok: (user) => console.log("Created:", user),
-  err: (error) => console.error("Failed:", error),
-});
 ```
 
 Benefits:
-- **Explicit failures**: The `Result<User, string>` return type shows this can fail
-- **Type-safe errors**: You know exactly what error type to expect
+- **Readable flow**: The `chain` block shows just the happy path—no interleaved error checks
+- **Explicit failures**: Return types show exactly which functions can fail and how
+- **Type-safe errors**: Error types are known at compile time—here we get proper status codes
 - **Compiler-enforced**: You can't access `.value` without checking `.isOk()` first
 - **Early returns**: `yield*` exits on error, like Rust's `?` operator
 
@@ -137,30 +93,6 @@ const result = ok(2)
   .map((x) => x * 2)         // ok(4)
   .andThen((x) => ok(x + 1)) // ok(5)
   .unwrapOr(0);              // 5
-```
-
-### Boolean Operators
-
-```ts
-import { err, ok } from "antithrow";
-
-const next = ok(1).and(ok("next"));
-console.log(next.unwrap()); // "next"
-
-const fallback = err<number, string>("missing").or(ok(0));
-console.log(fallback.unwrap()); // 0
-```
-
-Async works the same way:
-
-```ts
-import { errAsync, ok, okAsync } from "antithrow";
-
-const nextAsync = okAsync(1).and(ok("next"));
-console.log(await nextAsync.unwrap()); // "next"
-
-const fallbackAsync = errAsync<number, string>("missing").or(okAsync(0));
-console.log(await fallbackAsync.unwrap()); // 0
 ```
 
 ### Async Results
