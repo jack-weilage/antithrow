@@ -3,15 +3,19 @@ pre-push:
   jobs:
     - name: packages audit
       run: bun audit --audit-level high
-      
+
     - name: lint
       run: bun lint
 
 pre-commit:
   parallel: true
   jobs:
-    - run: bunx biome check {staged_files}
+    - run: bunx biome check --write {staged_files}
       glob: "*.{js,ts,json}"
-    
+      stage_fixed: true
+
+    - run: bunx knip --cache
+      glob: "*.{js,ts,json}"
+
     - run: bun test
       glob: "*.{js,ts,json}"

@@ -14,7 +14,7 @@ bun run build
 # Format code
 bun run format
 
-# Lint code (runs biome, publint, and tsc)
+# Lint code (runs biome, knip, publint, and tsc)
 bun run lint
 ```
 
