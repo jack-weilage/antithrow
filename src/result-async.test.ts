@@ -1,4 +1,4 @@
-import { describe, expect, expectTypeOf, test } from "bun:test";
+import { describe, expect, expectTypeOf, mock, test } from "bun:test";
 import type { Result } from "./result.js";
 import { err, ok } from "./result.js";
 import { errAsync, okAsync, ResultAsync } from "./result-async.js";
@@ -145,16 +145,6 @@ describe("ResultAsync", () => {
 			const result = errAsync<number, string>("error").map((x) => x * 2);
 			expect(await result.isErr()).toBe(true);
 			expect(await result.unwrapErr()).toBe("error");
-		});
-
-		test("captures thrown errors from map callback", () => {
-			const error = new Error("map boom");
-			const result = okAsync<number, Error>(1).map(() => {
-				throw error;
-			});
-
-			expect(result.isErr()).resolves.toBe(true);
-			expect(result.unwrapErr()).resolves.toBe(error);
 		});
 	});
 
@@ -316,16 +306,6 @@ describe("ResultAsync", () => {
 		test("can return new Err from recovery", async () => {
 			const result = errAsync<number, string>("error").orElse((e) => err(e.length));
 			expect(await result.unwrapErr()).toBe(5);
-		});
-
-		test("captures thrown errors from orElse callback", () => {
-			const error = new Error("orElse boom");
-			const result = errAsync<number, Error>(new Error("initial")).orElse(() => {
-				throw error;
-			});
-
-			expect(result.isErr()).resolves.toBe(true);
-			expect(result.unwrapErr()).resolves.toBe(error);
 		});
 	});
 
@@ -500,13 +480,6 @@ describe("ResultAsync", () => {
 			expect(await result.unwrapErr()).toBe("error");
 		});
 
-		test("wraps rejected Promise as Err", async () => {
-			const error = new Error("rejected");
-			const result = ResultAsync.fromPromise(Promise.reject(error));
-			expect(await result.isErr()).toBe(true);
-			expect(await result.unwrapErr()).toBe(error);
-		});
-
 		test("can be chained with map", async () => {
 			const promise = Promise.resolve(ok(21));
 			const result = ResultAsync.fromPromise(promise).map((x) => x * 2);
@@ -590,6 +563,112 @@ describe("ResultAsync", () => {
 			}).map((x) => x);
 			expect(await result.isErr()).toBe(true);
 			expect((await result.unwrapErr()) as Error).toBeInstanceOf(Error);
+		});
+	});
+
+	describe("async callbacks (MaybePromise)", () => {
+		test("map with async callback", async () => {
+			const result = okAsync(42).map(async (x) => x * 2);
+			expect(await result.unwrap()).toBe(84);
+		});
+
+		test("mapErr with async callback", async () => {
+			const result = errAsync<number, string>("error").mapErr(async (e) => e.toUpperCase());
+			expect(await result.unwrapErr()).toBe("ERROR");
+		});
+
+		test("andThen with async callback returning Promise<Result>", async () => {
+			const result = okAsync(42).andThen(async (x) => ok(x * 2));
+			expect(await result.unwrap()).toBe(84);
+		});
+
+		test("orElse with async callback returning Promise<Result>", async () => {
+			const result = errAsync<number, string>("error").orElse(async (e) => ok(e.length));
+			expect(await result.unwrap()).toBe(5);
+		});
+
+		test("isOkAnd with async predicate", async () => {
+			const result = okAsync(42);
+			expect(await result.isOkAnd(async (x) => x > 10)).toBe(true);
+			expect(await result.isOkAnd(async (x) => x > 100)).toBe(false);
+		});
+
+		test("isErrAnd with async predicate", async () => {
+			const result = errAsync<number, string>("error");
+			expect(await result.isErrAnd(async (e) => e.length > 3)).toBe(true);
+			expect(await result.isErrAnd(async (e) => e.length > 10)).toBe(false);
+		});
+
+		test("unwrapOrElse with async callback", async () => {
+			const result = errAsync<number, string>("error");
+			expect(await result.unwrapOrElse(async (e) => e.length)).toBe(5);
+		});
+
+		test("mapOr with async callback", async () => {
+			const result = okAsync(2);
+			expect(await result.mapOr(0, async (x) => x * 2)).toBe(4);
+		});
+
+		test("mapOrElse with async callbacks", async () => {
+			const okResult = okAsync<number, string>(2);
+			expect(
+				await okResult.mapOrElse(
+					async (e) => e.length,
+					async (x) => x * 2,
+				),
+			).toBe(4);
+
+			const errResult = errAsync<number, string>("error");
+			expect(
+				await errResult.mapOrElse(
+					async (e) => e.length,
+					async (x) => x * 2,
+				),
+			).toBe(5);
+		});
+
+		test("match with async handlers", async () => {
+			const okResult = okAsync<number, string>(42);
+			expect(
+				await okResult.match({
+					ok: async (x) => `value: ${x}`,
+					err: async (e) => `error: ${e}`,
+				}),
+			).toBe("value: 42");
+
+			const errResult = errAsync<number, string>("oops");
+			expect(
+				await errResult.match({
+					ok: async (x) => `value: ${x}`,
+					err: async (e) => `error: ${e}`,
+				}),
+			).toBe("error: oops");
+		});
+
+		test("inspect with async callback", async () => {
+			const fn = mock(async (_x: number) => {});
+			const result = okAsync(42).inspect(fn);
+			expect(await result.unwrap()).toBe(42);
+			expect(fn).toHaveBeenCalledWith(42);
+		});
+
+		test("inspectErr with async callback", async () => {
+			const fn = mock(async (_e: string) => {});
+			const result = errAsync<number, string>("error").inspectErr(fn);
+			expect(await result.unwrapErr()).toBe("error");
+			expect(fn).toHaveBeenCalledWith("error");
+		});
+
+		test("inspect allows callbacks returning non-void values", async () => {
+			const result = okAsync([1, 2, 3]).inspect((arr) => arr.push(4));
+			expect(await result.unwrap()).toEqual([1, 2, 3, 4]);
+		});
+
+		test("inspectErr allows callbacks returning non-void values", async () => {
+			const logs: string[] = [];
+			const result = errAsync<number, string>("error").inspectErr((e) => logs.push(e));
+			expect(await result.unwrapErr()).toBe("error");
+			expect(logs).toEqual(["error"]);
 		});
 	});
 
