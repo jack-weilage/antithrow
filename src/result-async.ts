@@ -343,15 +343,7 @@ export class ResultAsync<T, E> implements PromiseLike<Result<T, E>>, ResultAsync
 	private wrap<U, F>(
 		fn: (result: Result<T, E>) => MaybePromise<Result<U, F>> | ResultAsync<U, F>,
 	): ResultAsync<U, F> {
-		return ResultAsync.fromPromise(
-			this.promise.then(async (r) => {
-				const result = fn(r);
-				if (result instanceof ResultAsync) {
-					return result;
-				}
-				return result;
-			}),
-		);
+		return ResultAsync.fromPromise(this.promise.then(async (r) => fn(r)));
 	}
 
 	/**
