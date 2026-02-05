@@ -354,7 +354,8 @@ export class ResultAsync<T, E> implements PromiseLike<Result<T, E>>, ResultAsync
 		return ResultAsync.fromPromise(
 			Promise.resolve()
 				.then(fn)
-				.then((value) => ok(value)),
+				.then((value) => ok(value))
+				.catch((error) => err(error)),
 		);
 	}
 
@@ -380,12 +381,15 @@ export class ResultAsync<T, E> implements PromiseLike<Result<T, E>>, ResultAsync
 	}
 
 	/**
-	 * Wraps an existing `Promise<Result<T, E>>` into a `ResultAsync`. If the promise
-	 * rejects, the error is caught and wrapped in an `Err`.
+	 * Wraps an existing `Promise<Result<T, E>>` into a `ResultAsync`.
+	 *
+	 * This method does not catch promise rejections. If the promise may reject,
+	 * use {@link ResultAsync.try} instead, which catches exceptions and wraps
+	 * them as `Err<unknown>`.
 	 *
 	 * @example
 	 * ```ts
-	 * const promise = fetchData().then(data => ok(data)).catch(e => err(e));
+	 * const promise = fetchData().then(data => ok(data), e => err(e));
 	 * const result = ResultAsync.fromPromise(promise);
 	 * ```
 	 *
@@ -397,7 +401,7 @@ export class ResultAsync<T, E> implements PromiseLike<Result<T, E>>, ResultAsync
 	 * @returns A `ResultAsync` containing the resolved `Result`.
 	 */
 	static fromPromise<T, E>(promise: Promise<Result<T, E>>): ResultAsync<T, E> {
-		return new ResultAsync(promise.catch((error) => err(error)));
+		return new ResultAsync(promise);
 	}
 
 	// biome-ignore lint/suspicious/noThenProperty: We are implementing `PromiseLike`.

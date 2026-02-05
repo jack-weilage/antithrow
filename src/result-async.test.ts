@@ -146,16 +146,6 @@ describe("ResultAsync", () => {
 			expect(await result.isErr()).toBe(true);
 			expect(await result.unwrapErr()).toBe("error");
 		});
-
-		test("captures thrown errors from map callback", () => {
-			const error = new Error("map boom");
-			const result = okAsync<number, Error>(1).map(() => {
-				throw error;
-			});
-
-			expect(result.isErr()).resolves.toBe(true);
-			expect(result.unwrapErr()).resolves.toBe(error);
-		});
 	});
 
 	describe("mapErr", () => {
@@ -316,16 +306,6 @@ describe("ResultAsync", () => {
 		test("can return new Err from recovery", async () => {
 			const result = errAsync<number, string>("error").orElse((e) => err(e.length));
 			expect(await result.unwrapErr()).toBe(5);
-		});
-
-		test("captures thrown errors from orElse callback", () => {
-			const error = new Error("orElse boom");
-			const result = errAsync<number, Error>(new Error("initial")).orElse(() => {
-				throw error;
-			});
-
-			expect(result.isErr()).resolves.toBe(true);
-			expect(result.unwrapErr()).resolves.toBe(error);
 		});
 	});
 
@@ -498,13 +478,6 @@ describe("ResultAsync", () => {
 			const result = ResultAsync.fromPromise(promise);
 			expect(await result.isErr()).toBe(true);
 			expect(await result.unwrapErr()).toBe("error");
-		});
-
-		test("wraps rejected Promise as Err", async () => {
-			const error = new Error("rejected");
-			const result = ResultAsync.fromPromise(Promise.reject(error));
-			expect(await result.isErr()).toBe(true);
-			expect(await result.unwrapErr()).toBe(error);
 		});
 
 		test("can be chained with map", async () => {
