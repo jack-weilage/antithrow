@@ -3,7 +3,7 @@ pre-push:
   jobs:
     - name: packages audit
       run: bun audit --audit-level high
-      
+
     - name: lint
       run: bun lint
 
@@ -12,6 +12,9 @@ pre-commit:
   jobs:
     - run: bunx biome check {staged_files}
       glob: "*.{js,ts,json}"
-    
+
+    - run: bunx knip --cache
+      glob: "*.{js,ts,json}"
+
     - run: bun test
       glob: "*.{js,ts,json}"
