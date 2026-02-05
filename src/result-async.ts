@@ -327,6 +327,12 @@ export class ResultAsync<T, E> implements PromiseLike<Result<T, E>>, ResultAsync
 		this.promise = promise;
 	}
 
+	private wrap<U, F>(
+		fn: (result: Result<T, E>) => Result<U, F> | ResultAsync<U, F>,
+	): ResultAsync<U, F> {
+		return ResultAsync.fromPromise(this.promise.then(fn));
+	}
+
 	/**
 	 * Executes a function and wraps the result in a `ResultAsync`. If the function
 	 * throws or the promise rejects, the error is caught and wrapped in an `Err`.
@@ -443,11 +449,11 @@ export class ResultAsync<T, E> implements PromiseLike<Result<T, E>>, ResultAsync
 	}
 
 	map<U>(fn: (value: T) => U): ResultAsync<U, E> {
-		return new ResultAsync(this.promise.then((result) => result.map(fn)));
+		return this.wrap((result) => result.map(fn));
 	}
 
 	mapErr<F>(fn: (error: E) => F): ResultAsync<T, F> {
-		return new ResultAsync(this.promise.then((result) => result.mapErr(fn)));
+		return this.wrap((result) => result.mapErr(fn));
 	}
 
 	async mapOr<U>(defaultValue: U, fn: (value: T) => U): Promise<U> {
@@ -459,55 +465,47 @@ export class ResultAsync<T, E> implements PromiseLike<Result<T, E>>, ResultAsync
 	}
 
 	andThen<U, F>(fn: (value: T) => Result<U, F> | ResultAsync<U, F>): ResultAsync<U, E | F> {
-		return new ResultAsync(
-			this.promise.then((result) => {
-				if (result.isErr()) {
-					// Cast avoids allocating a new Err; the value type U is phantom here.
-					return result as unknown as Err<U, E | F>;
-				}
+		return this.wrap((result) => {
+			if (result.isErr()) {
+				// Cast avoids allocating a new Err; the value type U is phantom here.
+				return result as unknown as Err<U, E | F>;
+			}
 
-				return fn(result.value);
-			}),
-		);
+			return fn(result.value);
+		});
 	}
 
 	and<U, F>(result: Result<U, F> | ResultAsync<U, F>): ResultAsync<U, E | F> {
-		return new ResultAsync(
-			this.promise.then((value) => {
-				if (value.isErr()) {
-					// Cast avoids allocating a new Err; the value type U is phantom here.
-					return value as unknown as Err<U, E | F>;
-				}
+		return this.wrap((value) => {
+			if (value.isErr()) {
+				// Cast avoids allocating a new Err; the value type U is phantom here.
+				return value as unknown as Err<U, E | F>;
+			}
 
-				return result;
-			}),
-		);
+			return result;
+		});
 	}
 
 	or<F>(result: Result<T, F> | ResultAsync<T, F>): ResultAsync<T, F> {
-		return new ResultAsync(
-			this.promise.then((value) => {
-				if (value.isOk()) {
-					// Cast avoids allocating a new Ok; the error type F is phantom here.
-					return value as unknown as Ok<T, F>;
-				}
+		return this.wrap((value) => {
+			if (value.isOk()) {
+				// Cast avoids allocating a new Ok; the error type F is phantom here.
+				return value as unknown as Ok<T, F>;
+			}
 
-				return result;
-			}),
-		);
+			return result;
+		});
 	}
 
 	orElse<F>(fn: (error: E) => Result<T, F> | ResultAsync<T, F>): ResultAsync<T, F> {
-		return new ResultAsync(
-			this.promise.then((result) => {
-				if (result.isOk()) {
-					// Cast avoids allocating a new Ok; the error type F is phantom here.
-					return result as unknown as Ok<T, F>;
-				}
+		return this.wrap((result) => {
+			if (result.isOk()) {
+				// Cast avoids allocating a new Ok; the error type F is phantom here.
+				return result as unknown as Ok<T, F>;
+			}
 
-				return fn(result.error);
-			}),
-		);
+			return fn(result.error);
+		});
 	}
 
 	async match<U>(handlers: { ok: (value: T) => U; err: (error: E) => U }): Promise<U> {
@@ -515,11 +513,11 @@ export class ResultAsync<T, E> implements PromiseLike<Result<T, E>>, ResultAsync
 	}
 
 	inspect(fn: (value: T) => void): ResultAsync<T, E> {
-		return new ResultAsync(this.promise.then((result) => result.inspect(fn)));
+		return this.wrap((result) => result.inspect(fn));
 	}
 
 	inspectErr(fn: (error: E) => void): ResultAsync<T, E> {
-		return new ResultAsync(this.promise.then((result) => result.inspectErr(fn)));
+		return this.wrap((result) => result.inspectErr(fn));
 	}
 
 	flatten<U, F>(this: ResultAsync<Result<U, F>, E>): ResultAsync<U, E | F> {

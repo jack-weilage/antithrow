@@ -146,6 +146,16 @@ describe("ResultAsync", () => {
 			expect(await result.isErr()).toBe(true);
 			expect(await result.unwrapErr()).toBe("error");
 		});
+
+		test("captures thrown errors from map callback", () => {
+			const error = new Error("map boom");
+			const result = okAsync<number, Error>(1).map(() => {
+				throw error;
+			});
+
+			expect(result.isErr()).resolves.toBe(true);
+			expect(result.unwrapErr()).resolves.toBe(error);
+		});
 	});
 
 	describe("mapErr", () => {
@@ -306,6 +316,15 @@ describe("ResultAsync", () => {
 		test("can return new Err from recovery", async () => {
 			const result = errAsync<number, string>("error").orElse((e) => err(e.length));
 			expect(await result.unwrapErr()).toBe(5);
+		});
+
+		test("captures thrown errors from orElse callback", async () => {
+			const error = new Error("orElse boom");
+			const result = errAsync<number, Error>(new Error("initial")).orElse(() => {
+				throw error;
+			});
+			await expect(result.isErr()).resolves.toBe(true);
+			await expect(result.unwrapErr()).resolves.toBe(error);
 		});
 	});
 
