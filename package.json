@@ -33,7 +33,7 @@
 		"lint:knip": "knip --cache",
 		"lint:publint": "publint",
 		"lint:types": "tsc --noEmit",
-		"format": "biome format --write .",
+		"format": "biome check --write .",
 		"release": "bun run clean && bun run build && changeset publish"
 	},
 	"devDependencies": {
