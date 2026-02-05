@@ -318,13 +318,14 @@ describe("ResultAsync", () => {
 			expect(await result.unwrapErr()).toBe(5);
 		});
 
-		test("captures thrown errors from orElse callback", async () => {
+		test("captures thrown errors from orElse callback", () => {
 			const error = new Error("orElse boom");
 			const result = errAsync<number, Error>(new Error("initial")).orElse(() => {
 				throw error;
 			});
-			await expect(result.isErr()).resolves.toBe(true);
-			await expect(result.unwrapErr()).resolves.toBe(error);
+
+			expect(result.isErr()).resolves.toBe(true);
+			expect(result.unwrapErr()).resolves.toBe(error);
 		});
 	});
 
