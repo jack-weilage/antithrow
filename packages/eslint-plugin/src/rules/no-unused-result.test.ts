@@ -1,0 +1,110 @@
+import { afterAll, describe, test } from "bun:test";
+import { RuleTester } from "@typescript-eslint/rule-tester";
+import { noUnusedResult } from "./no-unused-result.js";
+
+RuleTester.describe = describe;
+RuleTester.describeSkip = describe.skip;
+RuleTester.it = test;
+RuleTester.itOnly = test.only;
+RuleTester.itSkip = test.skip;
+RuleTester.afterAll = afterAll;
+
+const ruleTester = new RuleTester({
+	languageOptions: {
+		parserOptions: {
+			projectService: {
+				allowDefaultProject: ["*.ts"],
+			},
+			tsconfigRootDir: import.meta.dirname,
+		},
+	},
+});
+
+const preamble = `import { ok, err, okAsync, errAsync, Result, ResultAsync } from "antithrow";\n`;
+
+ruleTester.run("no-unused-result", noUnusedResult, {
+	valid: [
+		{
+			name: "assigned to variable",
+			code: `${preamble}const x = ok(1);`,
+		},
+		{
+			name: "assigned to underscore",
+			code: `${preamble}let _ = ok(1);`,
+		},
+		{
+			name: "returned from function",
+			code: `${preamble}function f() { return ok(1); }`,
+		},
+		{
+			name: "passed as argument",
+			code: `${preamble}function foo(r: Result<number, never>) {} foo(ok(1));`,
+		},
+		{
+			name: "explicit void discard",
+			code: `${preamble}void ok(1);`,
+		},
+		{
+			name: "chain ending in unwrap (non-Result)",
+			code: `${preamble}ok(1).unwrap();`,
+		},
+		{
+			name: "non-Result expression statement",
+			code: `${preamble}42;`,
+		},
+		{
+			name: "void-returning function",
+			code: `${preamble}console.log("hi");`,
+		},
+		{
+			name: "ResultAsync assigned in async function",
+			code: `${preamble}async function f() { const x = await okAsync(1); }`,
+		},
+		{
+			name: "match returns non-Result",
+			code: `${preamble}ok(1).match({ ok: (v) => v, err: (e) => 0 });`,
+		},
+	],
+	invalid: [
+		{
+			name: "bare ok() expression",
+			code: `${preamble}ok(1);`,
+			errors: [{ messageId: "unusedResult" }],
+		},
+		{
+			name: "bare err() expression",
+			code: `${preamble}err("x");`,
+			errors: [{ messageId: "unusedResult" }],
+		},
+		{
+			name: "chain still produces Result (map), unused",
+			code: `${preamble}ok(1).map(x => x + 1);`,
+			errors: [{ messageId: "unusedResult" }],
+		},
+		{
+			name: "bare okAsync() expression",
+			code: `${preamble}okAsync(1);`,
+			errors: [{ messageId: "unusedResult" }],
+		},
+		{
+			name: "function returning Result, unused",
+			code: `${preamble}function getResult(): Result<number, string> { return ok(1); } getResult();`,
+			errors: [{ messageId: "unusedResult" }],
+		},
+		{
+			name: "awaited okAsync produces Result, unused",
+			code: `${preamble}async function f() { await okAsync(1); }`,
+			errors: [{ messageId: "unusedResult" }],
+		},
+		{
+			name: "chain producing Result (mapErr), unused",
+			code: `${preamble}ok(1).mapErr(e => e);`,
+			errors: [{ messageId: "unusedResult" }],
+		},
+		{
+			name: "bare errAsync() expression",
+			code: `${preamble}errAsync("x");`,
+			errors: [{ messageId: "unusedResult" }],
+		},
+	],
+});
