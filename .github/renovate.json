@@ -3,7 +3,7 @@
 	"extends": [
 		"config:best-practices",
 		":pinAllExceptPeerDependencies",
-		"helpers:pinGithubActionDigestsToSemver",
+		"helpers:pinGitHubActionDigestsToSemver",
 		"customManagers:biomeVersions"
 	],
 	"labels": ["dependencies"],
