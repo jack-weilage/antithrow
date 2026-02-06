@@ -5,7 +5,6 @@ import { noUnusedResult } from "./no-unused-result.js";
 RuleTester.describe = describe;
 RuleTester.describeSkip = describe.skip;
 RuleTester.it = test;
-RuleTester.itOnly = test.only;
 RuleTester.itSkip = test.skip;
 RuleTester.afterAll = afterAll;
 
