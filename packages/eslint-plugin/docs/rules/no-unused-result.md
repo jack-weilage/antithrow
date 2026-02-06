@@ -10,7 +10,7 @@ This rule reports when a `Result` or `ResultAsync` value from `antithrow` is dis
 
 The rule is **type-aware** and uses TypeScript's type checker to determine whether an expression produces a `Result`. Since `Result<T, E>` is a type alias for `Ok<T, E> | Err<T, E>`, the rule checks for the underlying `Ok`, `Err`, and `ResultAsync` class types.
 
-**Default severity:** `warn` in the recommended config.
+**Default severity:** `error` in the recommended config.
 
 ### Invalid
 

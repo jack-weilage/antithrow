@@ -25,7 +25,7 @@ Object.defineProperty(plugin.configs, "recommended", {
 				"@antithrow": plugin,
 			},
 			rules: {
-				"@antithrow/no-unused-result": "warn",
+				"@antithrow/no-unused-result": "error",
 			},
 		} satisfies TSESLint.FlatConfig.Config;
 	},
