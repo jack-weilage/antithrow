@@ -1,8 +1,12 @@
 {
 	"$schema": "https://docs.renovatebot.com/renovate-schema.json",
-	"extends": ["config:best-practices", "customManagers:biomeVersions"],
-	"minimumReleaseAge": "3 days",
-	"prCreation": "not-pending",
+	"extends": [
+		"config:best-practices",
+		":pinAllExceptPeerDependencies",
+		"helpers:pinGithubActionDigestsToSemver",
+		"customManagers:biomeVersions"
+	],
+	"labels": ["dependencies"],
 	"packageRules": [
 		{
 			"groupName": "bun",
