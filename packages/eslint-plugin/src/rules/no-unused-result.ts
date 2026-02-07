@@ -1,7 +1,7 @@
 import type { TSESTree } from "@typescript-eslint/utils";
 import { ESLintUtils } from "@typescript-eslint/utils";
-import ts from "typescript";
 import { createRule } from "../create-rule.js";
+import { isResultType } from "./utils/result-type.js";
 
 function needsParentheses(node: TSESTree.Expression): boolean {
 	switch (node.type) {
@@ -24,31 +24,6 @@ export const MessageId = {
 	ADD_VOID: "addVoid",
 } as const;
 export type MessageId = (typeof MessageId)[keyof typeof MessageId];
-
-const RESULT_TYPE_NAMES = new Set(["Ok", "Err", "ResultAsync"]);
-
-function isResultType(type: ts.Type): boolean {
-	if (type.isUnion()) {
-		return type.types.some((t) => isResultType(t));
-	}
-
-	const flags = type.getFlags();
-	if (flags & (ts.TypeFlags.Any | ts.TypeFlags.Unknown | ts.TypeFlags.Never)) {
-		return false;
-	}
-
-	const symbol = type.getSymbol();
-	if (!symbol || !RESULT_TYPE_NAMES.has(symbol.getName())) {
-		return false;
-	}
-
-	const declarations = symbol.getDeclarations() ?? [];
-
-	return declarations.some((decl) => {
-		const sourceFile = decl.getSourceFile();
-		return sourceFile.fileName.includes("antithrow");
-	});
-}
 
 export const noUnusedResult = createRule<[], MessageId>({
 	name: "no-unused-result",
