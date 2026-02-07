@@ -1,5 +1,11 @@
 # antithrow
 
+## 1.2.0
+
+### Minor Changes
+
+- [#42](https://github.com/jack-weilage/antithrow/pull/42) [`13b0df6`](https://github.com/jack-weilage/antithrow/commit/13b0df6523828a2208e828558d7d822b5cbc5644) Thanks [@jack-weilage](https://github.com/jack-weilage)! - feat: add async methods converting `Result` to `ResultAsync`
+
 ## 1.1.0
 
 ### Minor Changes
