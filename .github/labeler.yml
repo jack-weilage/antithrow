@@ -1,0 +1,15 @@
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file: bun.lock
+
+pkg:antithrow:
+  - changed-files:
+      - any-glob-to-any-file: packages/antithrow/**
+
+pkg:eslint-plugin:
+  - changed-files:
+      - any-glob-to-any-file: packages/eslint-plugin/**
+
+pkg:std:
+  - changed-files:
+      - any-glob-to-any-file: packages/std/**
