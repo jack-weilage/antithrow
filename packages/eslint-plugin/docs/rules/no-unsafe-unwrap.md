@@ -17,6 +17,13 @@ The rule is **type-aware** and only reports when the receiver is a `Result`/`Res
 
 It also reports extracting these members as properties, for example `const fn = result.unwrap` and `const { unwrap } = result`.
 
+When the receiver is statically known to be `Ok` or `Err`, direct calls are auto-fixable:
+
+- `unwrap` on `Ok` -> `.value`
+- `unwrapErr` on `Err` -> `.error`
+
+Calls to `expect`/`expectErr`, mixed or unknown variants (`Result<T, E>`, `ResultAsync`, etc.), and member extraction patterns are reported without autofix.
+
 **Default severity:** `warn` in the recommended config.
 
 ### Invalid
@@ -35,6 +42,16 @@ errAsync("x").expectErr("error should exist");
 const result = ok(1);
 const fn = result.unwrap;
 const { unwrap } = result;
+```
+
+### Autofix Examples
+
+```ts
+import { ok, err } from "antithrow";
+
+ok(1).unwrap(); // auto-fix -> ok(1).value
+
+err("x").unwrapErr(); // auto-fix -> err("x").error
 ```
 
 ### Valid

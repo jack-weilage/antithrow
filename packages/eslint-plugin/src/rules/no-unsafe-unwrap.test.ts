@@ -72,12 +72,26 @@ ruleTester.run("no-unsafe-unwrap", noUnsafeUnwrap, {
 		{
 			name: "unwrap call on Result",
 			code: `${preamble}ok(1).unwrap();`,
-			errors: [{ messageId: MessageId.UNSAFE_UNWRAP }],
+			output: `${preamble}ok(1).value;`,
+			errors: [{ messageId: MessageId.UNWRAP_OK_VALUE }],
+		},
+		{
+			name: "escaped unwrap identifier on Ok is reported without autofix",
+			code: `${preamble}ok(1).unw\\u0072ap();`,
+			output: null,
+			errors: [{ messageId: MessageId.UNWRAP_OK_VALUE }],
 		},
 		{
 			name: "unwrapErr call on Result",
 			code: `${preamble}err("x").unwrapErr();`,
-			errors: [{ messageId: MessageId.UNSAFE_UNWRAP }],
+			output: `${preamble}err("x").error;`,
+			errors: [{ messageId: MessageId.UNWRAP_ERR_ERROR }],
+		},
+		{
+			name: "escaped unwrapErr identifier on Err is reported without autofix",
+			code: `${preamble}err("x").unwrap\\u0045rr();`,
+			output: null,
+			errors: [{ messageId: MessageId.UNWRAP_ERR_ERROR }],
 		},
 		{
 			name: "expect call on Result",
@@ -105,9 +119,32 @@ ruleTester.run("no-unsafe-unwrap", noUnsafeUnwrap, {
 			errors: [{ messageId: MessageId.UNSAFE_UNWRAP }],
 		},
 		{
+			name: "optional unwrap call on optional Ok",
+			code: `${preamble}declare const result: ReturnType<typeof ok> | undefined;\nresult?.unwrap();`,
+			output: `${preamble}declare const result: ReturnType<typeof ok> | undefined;\nresult?.value;`,
+			errors: [{ messageId: MessageId.UNWRAP_OK_VALUE }],
+		},
+		{
+			name: "optional computed unwrap call on optional Ok",
+			code: `${preamble}declare const result: ReturnType<typeof ok> | undefined;\nresult?.["unwrap"]();`,
+			output: `${preamble}declare const result: ReturnType<typeof ok> | undefined;\nresult?.value;`,
+			errors: [{ messageId: MessageId.UNWRAP_OK_VALUE }],
+		},
+		{
+			name: "unwrap call on unresolved Result union",
+			code: `${preamble}declare const result: Result<number, string>;\nresult.unwrap();`,
+			errors: [{ messageId: MessageId.UNSAFE_UNWRAP }],
+		},
+		{
+			name: "unwrap call on mixed Ok and non-Result union",
+			code: `${preamble}type Box = { unwrap(): number };\ndeclare const result: ReturnType<typeof ok> | Box;\nresult.unwrap();`,
+			errors: [{ messageId: MessageId.UNSAFE_UNWRAP }],
+		},
+		{
 			name: "static bracket unwrap",
 			code: `${preamble}const result = ok(1);\nresult["unwrap"]();`,
-			errors: [{ messageId: MessageId.UNSAFE_UNWRAP }],
+			output: `${preamble}const result = ok(1);\nresult.value;`,
+			errors: [{ messageId: MessageId.UNWRAP_OK_VALUE }],
 		},
 		{
 			name: "static template bracket expect",
