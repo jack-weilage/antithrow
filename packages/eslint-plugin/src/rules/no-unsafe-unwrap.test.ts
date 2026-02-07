@@ -1,23 +1,5 @@
-import { afterAll, describe, test } from "bun:test";
-import { RuleTester } from "@typescript-eslint/rule-tester";
 import { MessageId, noUnsafeUnwrap } from "./no-unsafe-unwrap.js";
-
-RuleTester.describe = describe;
-RuleTester.describeSkip = describe.skip;
-RuleTester.it = test;
-RuleTester.itSkip = test.skip;
-RuleTester.afterAll = afterAll;
-
-const ruleTester = new RuleTester({
-	languageOptions: {
-		parserOptions: {
-			projectService: {
-				allowDefaultProject: ["*.ts"],
-			},
-			tsconfigRootDir: import.meta.dirname,
-		},
-	},
-});
+import { ruleTester } from "./utils/test-utils.js";
 
 const preamble = `import { ok, err, okAsync, errAsync, Result } from "antithrow";\n`;
 
