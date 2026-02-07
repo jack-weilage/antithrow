@@ -3,6 +3,11 @@ import { ESLintUtils } from "@typescript-eslint/utils";
 import ts from "typescript";
 import { createRule } from "../create-rule.js";
 
+const MessageId = {
+	UNUSED_RESULT: "unusedResult",
+} as const;
+type MessageId = (typeof MessageId)[keyof typeof MessageId];
+
 const RESULT_TYPE_NAMES = new Set(["Ok", "Err", "ResultAsync"]);
 
 function isResultType(type: ts.Type): boolean {
@@ -28,7 +33,7 @@ function isResultType(type: ts.Type): boolean {
 	});
 }
 
-export const noUnusedResult = createRule({
+export const noUnusedResult = createRule<[], MessageId>({
 	name: "no-unused-result",
 	meta: {
 		type: "problem",
@@ -39,7 +44,7 @@ export const noUnusedResult = createRule({
 			requiresTypeChecking: true,
 		},
 		messages: {
-			unusedResult:
+			[MessageId.UNUSED_RESULT]:
 				"This Result must be used. Handle the error case or explicitly discard it with `void`.",
 		},
 		schema: [],
@@ -93,7 +98,7 @@ export const noUnusedResult = createRule({
 
 			context.report({
 				node,
-				messageId: "unusedResult",
+				messageId: MessageId.UNUSED_RESULT,
 			});
 		}
 
